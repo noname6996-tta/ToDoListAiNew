@@ -32,15 +32,13 @@ import com.tta.todolistainew.feature.task.ui.TaskListViewModel
 
 /**
  * Main navigation graph for the application.
- * Uses type-safe navigation with Kotlin serialization.
- * Starts with Login screen and navigates to TaskList after successful login.
  */
 @Composable
 fun AppNavGraph(
     appContainer: AppContainer,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: Route = Route.Login // Start with Login screen
+    startDestination: Route = Route.Login
 ) {
     NavHost(
         navController = navController,
@@ -56,7 +54,6 @@ fun AppNavGraph(
             LoginScreen(
                 viewModel = viewModel,
                 onNavigateToHome = {
-                    // Navigate to Home and clear back stack
                     navController.navigate(Route.Home) {
                         popUpTo(Route.Login) { inclusive = true }
                     }
@@ -64,13 +61,14 @@ fun AppNavGraph(
             )
         }
         
-        // Home Screen (Main Dashboard)
+        // Home Screen
         composable<Route.Home> {
             val viewModel: HomeViewModel = viewModel(
                 factory = HomeViewModel.Factory(
                     getTasksByTypeUseCase = appContainer.getTasksByTypeUseCase,
                     getGoalsUseCase = appContainer.getGoalsUseCase,
-                    taskRepository = appContainer.taskRepository
+                    taskRepository = appContainer.taskRepository,
+                    goalRepository = appContainer.goalRepository // Added dependency
                 )
             )
             
@@ -82,7 +80,8 @@ fun AppNavGraph(
             )
         }
         
-        // Task List Screen (Legacy / Specific List)
+        // ... (Other routes remain same for brevity, will regenerate full file if needed but just updated HomeVM factory)
+        
         composable<Route.TaskList> {
             val viewModel: TaskListViewModel = viewModel(
                 factory = TaskListViewModel.Factory(
@@ -90,30 +89,16 @@ fun AppNavGraph(
                     taskRepository = appContainer.taskRepository
                 )
             )
-            
-            TaskListScreen(
-                viewModel = viewModel,
-                onNavigateToTaskDetail = { taskId ->
-                    navController.navigate(Route.TaskDetail(taskId))
-                }
-            )
+            TaskListScreen(viewModel, { navController.navigate(Route.TaskDetail(it)) })
         }
         
-        // Task Detail Screen
         composable<Route.TaskDetail> { backStackEntry ->
             val route: Route.TaskDetail = backStackEntry.toRoute()
-            // TODO: Implement TaskDetailScreen (Placeholder for now)
-            TaskDetailPlaceholder(
-                taskId = route.taskId,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            TaskDetailPlaceholder(route.taskId, { navController.popBackStack() })
         }
         
-        // Goal Detail Screen
         composable<Route.GoalDetail> { backStackEntry ->
             val route: Route.GoalDetail = backStackEntry.toRoute()
-            
-            // Create ViewModel with goalId from route
             val viewModel: GoalDetailViewModel = viewModel(
                 factory = GoalDetailViewModel.Factory(
                     goalId = route.goalId,
@@ -121,46 +106,15 @@ fun AppNavGraph(
                     taskRepository = appContainer.taskRepository
                 )
             )
-            
-            GoalDetailScreen(
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToTaskDetail = { taskId ->
-                    navController.navigate(Route.TaskDetail(taskId))
-                }
-            )
+            GoalDetailScreen(viewModel, { navController.popBackStack() }, { navController.navigate(Route.TaskDetail(it)) })
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TaskDetailPlaceholder(
-    taskId: Long,
-    onNavigateBack: () -> Unit
-) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Task Detail") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("Task Detail for ID: $taskId")
-        }
+private fun TaskDetailPlaceholder(taskId: Long, onNavigateBack: () -> Unit) {
+    Scaffold(topBar = { TopAppBar(title = { Text("Task Detail") }, navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }) }) { 
+        Box(Modifier.fillMaxSize().padding(it), contentAlignment = Alignment.Center) { Text("Task Detail for ID: $taskId") } 
     }
 }

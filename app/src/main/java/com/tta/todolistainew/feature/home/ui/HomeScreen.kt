@@ -11,37 +11,58 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tta.todolistainew.core.common.UiEvent
+import com.tta.todolistainew.feature.task.data.local.TaskType
 import com.tta.todolistainew.navigation.Route
+import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /**
  * Home Screen displaying task categories and goals.
@@ -54,6 +75,11 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    // Bottom Sheet State
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     
     // Handle UI events
     LaunchedEffect(Unit) {
@@ -93,7 +119,7 @@ fun HomeScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.onAddClick() },
+                onClick = { showBottomSheet = true }, // Show bottom sheet
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add")
@@ -184,6 +210,137 @@ fun HomeScreen(
                         )
                     }
                 }
+            }
+        }
+        
+        // Add Task/Goal Bottom Sheet
+        if (showBottomSheet) {
+            AddTaskBottomSheet(
+                sheetState = sheetState,
+                onDismiss = {
+                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                        showBottomSheet = false
+                    }
+                },
+                onAddTask = { title, description, type, dueDate ->
+                    viewModel.addTask(title, description, type, dueDate)
+                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                        showBottomSheet = false
+                    }
+                },
+                onAddGoal = { title, description, targetDate ->
+                    viewModel.addGoal(title, description, targetDate)
+                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                        showBottomSheet = false
+                    }
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddTaskBottomSheet(
+    sheetState: SheetState,
+    onDismiss: () -> Unit,
+    onAddTask: (title: String, description: String, type: TaskType, dueDate: LocalDate?) -> Unit,
+    onAddGoal: (title: String, description: String, targetDate: LocalDate?) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf(TaskType.QUICK) }
+    val focusRequester = remember { FocusRequester() }
+    
+    // Auto-focus logic
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 24.dp)
+                .navigationBarsPadding()
+                .imePadding()
+        ) {
+            Text(
+                text = "New Item",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Type Selection
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TaskType.entries.forEach { type ->
+                    val label = when(type) {
+                        TaskType.DAILY -> "Daily"
+                        TaskType.QUICK -> "Quick"
+                        TaskType.GOAL -> "Goal"
+                    }
+                    
+                    FilterChip(
+                        selected = selectedType == type,
+                        onClick = { selectedType = type },
+                        label = { Text(label) }
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Title Input
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text(if (selectedType == TaskType.GOAL) "Goal Title" else "Task Title") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Description (Simplified)
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Description (Optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 3
+            )
+            
+            // TODO: Add Date Selection if needed
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Create Button
+            Button(
+                onClick = {
+                    if (title.isNotBlank()) {
+                        if (selectedType == TaskType.GOAL) {
+                            onAddGoal(title, description, null) // Date picker TODO
+                        } else {
+                            onAddTask(title, description, selectedType, null) // Date picker TODO
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = title.isNotBlank()
+            ) {
+                Text("Create ${if (selectedType == TaskType.GOAL) "Goal" else "Task"}")
             }
         }
     }

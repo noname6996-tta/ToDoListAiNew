@@ -5,8 +5,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tta.todolistainew.core.common.Resource
 import com.tta.todolistainew.core.common.UiEvent
+import com.tta.todolistainew.feature.goal.domain.model.Goal
+import com.tta.todolistainew.feature.goal.domain.repository.GoalRepository
 import com.tta.todolistainew.feature.goal.domain.usecase.GetGoalsUseCase
 import com.tta.todolistainew.feature.task.data.local.TaskType
+import com.tta.todolistainew.feature.task.domain.model.Task
 import com.tta.todolistainew.feature.task.domain.repository.TaskRepository
 import com.tta.todolistainew.feature.task.domain.usecase.GetTasksByTypeUseCase
 import com.tta.todolistainew.navigation.Route
@@ -19,14 +22,16 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /**
  * ViewModel for the Home screen.
  */
 class HomeViewModel(
-    private val getTasksByTypeUseCase: GetTasksByTypeUseCase, // We might not need this if we only show stats
+    private val getTasksByTypeUseCase: GetTasksByTypeUseCase,
     private val getGoalsUseCase: GetGoalsUseCase,
-    private val taskRepository: TaskRepository
+    private val taskRepository: TaskRepository,
+    private val goalRepository: GoalRepository // Added GoalRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -66,8 +71,6 @@ class HomeViewModel(
                 if (goalsResource is Resource.Success) {
                     isLoading = false
                     // For each goal, fetch its stats. 
-                    // Note: This is efficient enough for small number of active goals.
-                    // Ideally, we'd have a use case returning combined data or a Room relation.
                     goalsWithProgress = goalsResource.data.map { goal ->
                         val total = taskRepository.getTotalCountByGoal(goal.id).first()
                         val completed = taskRepository.getCompletedCountByGoal(goal.id).first()
@@ -94,18 +97,14 @@ class HomeViewModel(
     }
     
     fun onDailyTasksClick() {
-        // Navigate to daily tasks list
-        // TODO: Implement navigation
         viewModelScope.launch {
-            _uiEvent.send(UiEvent.ShowToast("Daily Tasks clicked"))
+            _uiEvent.send(UiEvent.ShowToast("Daily Tasks List - Coming Soon"))
         }
     }
     
     fun onQuickTasksClick() {
-        // Navigate to quick tasks list
-        // TODO: Implement navigation
         viewModelScope.launch {
-             _uiEvent.send(UiEvent.ShowToast("Quick Tasks clicked"))
+             _uiEvent.send(UiEvent.ShowToast("Quick Tasks List - Coming Soon"))
         }
     }
     
@@ -115,15 +114,43 @@ class HomeViewModel(
         }
     }
     
-    fun onAddClick() {
-        // Navigate to add new task/goal
-        // For now, let's just trigger the bottom sheet in the UI
+    /**
+     * Adds a new task of a specific type.
+     */
+    fun addTask(title: String, description: String, type: TaskType, dueDate: LocalDate? = null) {
+        viewModelScope.launch {
+            val task = Task(
+                title = title,
+                description = description,
+                taskType = type,
+                dueDate = dueDate?.toEpochDay()?.times(86400000) // Convert to millis appx
+            )
+            taskRepository.addTask(task)
+            _uiEvent.send(UiEvent.ShowToast("Task added"))
+        }
+    }
+    
+    /**
+     * Adds a new goal.
+     */
+    fun addGoal(title: String, description: String, targetDate: LocalDate? = null) {
+        viewModelScope.launch {
+            val goal = Goal(
+                title = title,
+                description = description,
+                targetDate = targetDate,
+                startDate = LocalDate.now()
+            )
+            goalRepository.addGoal(goal)
+            _uiEvent.send(UiEvent.ShowToast("Goal created"))
+        }
     }
     
     class Factory(
         private val getTasksByTypeUseCase: GetTasksByTypeUseCase,
         private val getGoalsUseCase: GetGoalsUseCase,
-        private val taskRepository: TaskRepository
+        private val taskRepository: TaskRepository,
+        private val goalRepository: GoalRepository // Update factory
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -131,7 +158,8 @@ class HomeViewModel(
                 return HomeViewModel(
                     getTasksByTypeUseCase,
                     getGoalsUseCase,
-                    taskRepository
+                    taskRepository,
+                    goalRepository
                 ) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")

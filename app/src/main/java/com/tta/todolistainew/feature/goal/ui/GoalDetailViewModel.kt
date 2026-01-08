@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.tta.todolistainew.core.common.UiEvent
 import com.tta.todolistainew.feature.goal.domain.repository.GoalRepository
+import com.tta.todolistainew.feature.task.data.local.TaskType
+import com.tta.todolistainew.feature.task.domain.model.Task
 import com.tta.todolistainew.feature.task.domain.repository.TaskRepository
 import com.tta.todolistainew.navigation.Route
 import kotlinx.coroutines.channels.Channel
@@ -54,9 +56,29 @@ class GoalDetailViewModel(
         }
     }
     
+    fun addTaskToGoal(title: String, description: String) {
+        viewModelScope.launch {
+            val task = Task(
+                title = title,
+                description = description,
+                taskType = TaskType.GOAL,
+                goalId = goalId,
+                dueDate = _uiState.value.goal?.targetDate?.toEpochDay()?.times(86400000) // Default to goal target date if available
+            )
+            taskRepository.addTask(task)
+            _uiEvent.send(UiEvent.ShowToast("Task added to goal"))
+        }
+    }
+    
     fun onTaskClick(taskId: Long) {
         viewModelScope.launch {
             _uiEvent.send(UiEvent.Navigate(Route.TaskDetail(taskId)))
+        }
+    }
+    
+    fun toggleTaskCompletion(taskId: Long) {
+        viewModelScope.launch {
+            taskRepository.toggleTaskCompletion(taskId)
         }
     }
     
