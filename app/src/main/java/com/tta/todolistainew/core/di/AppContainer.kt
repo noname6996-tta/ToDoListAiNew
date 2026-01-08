@@ -1,16 +1,21 @@
 package com.tta.todolistainew.core.di
 
 import android.content.Context
+import com.tta.todolistainew.feature.goal.data.local.GoalDao
+import com.tta.todolistainew.feature.goal.data.repository.GoalRepositoryImpl
+import com.tta.todolistainew.feature.goal.domain.repository.GoalRepository
+import com.tta.todolistainew.feature.goal.domain.usecase.GetGoalsUseCase
 import com.tta.todolistainew.feature.task.data.local.AppDatabase
+import com.tta.todolistainew.feature.task.data.local.SubTaskDao
 import com.tta.todolistainew.feature.task.data.local.TaskDao
 import com.tta.todolistainew.feature.task.data.repository.TaskRepositoryImpl
 import com.tta.todolistainew.feature.task.domain.repository.TaskRepository
+import com.tta.todolistainew.feature.task.domain.usecase.GetTasksByTypeUseCase
 import com.tta.todolistainew.feature.task.domain.usecase.GetTasksUseCase
 
 /**
  * Manual Dependency Injection container.
  * Provides dependencies throughout the application using constructor injection.
- * This is a simple alternative to Hilt/Dagger for smaller projects.
  */
 class AppContainer(context: Context) {
     
@@ -24,13 +29,33 @@ class AppContainer(context: Context) {
         database.taskDao()
     }
     
+    private val goalDao: GoalDao by lazy {
+        database.goalDao()
+    }
+    
+    private val subTaskDao: SubTaskDao by lazy {
+        database.subTaskDao()
+    }
+    
     // Repositories
     val taskRepository: TaskRepository by lazy {
         TaskRepositoryImpl(taskDao)
     }
     
+    val goalRepository: GoalRepository by lazy {
+        GoalRepositoryImpl(goalDao)
+    }
+    
     // Use Cases
     val getTasksUseCase: GetTasksUseCase by lazy {
         GetTasksUseCase(taskRepository)
+    }
+    
+    val getTasksByTypeUseCase: GetTasksByTypeUseCase by lazy {
+        GetTasksByTypeUseCase(taskRepository)
+    }
+    
+    val getGoalsUseCase: GetGoalsUseCase by lazy {
+        GetGoalsUseCase(goalRepository)
     }
 }

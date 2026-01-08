@@ -1,5 +1,6 @@
 package com.tta.todolistainew.feature.task.domain.repository
 
+import com.tta.todolistainew.feature.task.data.local.TaskType
 import com.tta.todolistainew.feature.task.domain.model.Task
 import kotlinx.coroutines.flow.Flow
 
@@ -14,6 +15,16 @@ interface TaskRepository {
      * Get all tasks as a Flow for reactive updates.
      */
     fun getTasks(): Flow<List<Task>>
+    
+    /**
+     * Get tasks by type.
+     */
+    fun getTasksByType(taskType: TaskType): Flow<List<Task>>
+    
+    /**
+     * Get tasks for a specific goal.
+     */
+    fun getTasksByGoalId(goalId: Long): Flow<List<Task>>
     
     /**
      * Get a single task by its ID.
@@ -60,4 +71,24 @@ interface TaskRepository {
      * Delete all completed tasks.
      */
     suspend fun deleteCompletedTasks()
+    
+    /**
+     * Get count of completed tasks by type.
+     */
+    fun getCompletedCountByType(taskType: TaskType): Flow<Int>
+    
+    /**
+     * Get total count of tasks by type.
+     */
+    fun getTotalCountByType(taskType: TaskType): Flow<Int>
+    
+    /**
+     * Get count of completed tasks for a goal.
+     */
+    fun getCompletedCountByGoal(goalId: Long): Flow<Int>
+    
+    /**
+     * Get total count of tasks for a goal.
+     */
+    fun getTotalCountByGoal(goalId: Long): Flow<Int>
 }

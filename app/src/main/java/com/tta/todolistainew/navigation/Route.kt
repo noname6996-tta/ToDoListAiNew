@@ -16,7 +16,13 @@ sealed class Route {
     data object Login : Route()
     
     /**
-     * Route for the task list screen (home screen).
+     * Route for the home screen (was TaskList).
+     */
+    @Serializable
+    data object Home : Route()
+    
+    /**
+     * Route for the task list screen (legacy/fallback or specific list).
      */
     @Serializable
     data object TaskList : Route()
@@ -27,4 +33,10 @@ sealed class Route {
      */
     @Serializable
     data class TaskDetail(val taskId: Long) : Route()
+    
+    /**
+     * Route for viewing a specific goal.
+     */
+    @Serializable
+    data class GoalDetail(val goalId: Long) : Route()
 }

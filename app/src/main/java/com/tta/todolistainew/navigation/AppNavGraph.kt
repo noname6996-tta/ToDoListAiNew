@@ -23,6 +23,10 @@ import androidx.navigation.toRoute
 import com.tta.todolistainew.core.di.AppContainer
 import com.tta.todolistainew.feature.auth.ui.LoginScreen
 import com.tta.todolistainew.feature.auth.ui.LoginViewModel
+import com.tta.todolistainew.feature.goal.ui.GoalDetailScreen
+import com.tta.todolistainew.feature.goal.ui.GoalDetailViewModel
+import com.tta.todolistainew.feature.home.ui.HomeScreen
+import com.tta.todolistainew.feature.home.ui.HomeViewModel
 import com.tta.todolistainew.feature.task.ui.TaskListScreen
 import com.tta.todolistainew.feature.task.ui.TaskListViewModel
 
@@ -52,15 +56,33 @@ fun AppNavGraph(
             LoginScreen(
                 viewModel = viewModel,
                 onNavigateToHome = {
-                    // Navigate to TaskList and clear back stack so user can't go back to login
-                    navController.navigate(Route.TaskList) {
+                    // Navigate to Home and clear back stack
+                    navController.navigate(Route.Home) {
                         popUpTo(Route.Login) { inclusive = true }
                     }
                 }
             )
         }
         
-        // Task List Screen (Home)
+        // Home Screen (Main Dashboard)
+        composable<Route.Home> {
+            val viewModel: HomeViewModel = viewModel(
+                factory = HomeViewModel.Factory(
+                    getTasksByTypeUseCase = appContainer.getTasksByTypeUseCase,
+                    getGoalsUseCase = appContainer.getGoalsUseCase,
+                    taskRepository = appContainer.taskRepository
+                )
+            )
+            
+            HomeScreen(
+                viewModel = viewModel,
+                onNavigateToGoalDetail = { goalId ->
+                    navController.navigate(Route.GoalDetail(goalId))
+                }
+            )
+        }
+        
+        // Task List Screen (Legacy / Specific List)
         composable<Route.TaskList> {
             val viewModel: TaskListViewModel = viewModel(
                 factory = TaskListViewModel.Factory(
@@ -80,10 +102,32 @@ fun AppNavGraph(
         // Task Detail Screen
         composable<Route.TaskDetail> { backStackEntry ->
             val route: Route.TaskDetail = backStackEntry.toRoute()
-            // TODO: Implement TaskDetailScreen
+            // TODO: Implement TaskDetailScreen (Placeholder for now)
             TaskDetailPlaceholder(
                 taskId = route.taskId,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        // Goal Detail Screen
+        composable<Route.GoalDetail> { backStackEntry ->
+            val route: Route.GoalDetail = backStackEntry.toRoute()
+            
+            // Create ViewModel with goalId from route
+            val viewModel: GoalDetailViewModel = viewModel(
+                factory = GoalDetailViewModel.Factory(
+                    goalId = route.goalId,
+                    goalRepository = appContainer.goalRepository,
+                    taskRepository = appContainer.taskRepository
+                )
+            )
+            
+            GoalDetailScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTaskDetail = { taskId ->
+                    navController.navigate(Route.TaskDetail(taskId))
+                }
             )
         }
     }

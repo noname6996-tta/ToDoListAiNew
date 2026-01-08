@@ -17,14 +17,12 @@ interface TaskDao {
     
     /**
      * Get all tasks ordered by creation date (newest first).
-     * Returns a Flow to observe changes in real-time.
      */
     @Query("SELECT * FROM tasks ORDER BY createdAt DESC")
     fun getAllTasks(): Flow<List<TaskEntity>>
     
     /**
      * Get a single task by its ID.
-     * Returns a Flow to observe changes in real-time.
      */
     @Query("SELECT * FROM tasks WHERE id = :taskId")
     fun getTaskById(taskId: Long): Flow<TaskEntity?>
@@ -41,8 +39,62 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE isCompleted = 0 ORDER BY createdAt DESC")
     fun getPendingTasks(): Flow<List<TaskEntity>>
     
+    // ===== Task Type Queries =====
+    
     /**
-     * Insert a new task. If a task with the same ID exists, it will be replaced.
+     * Get all tasks of a specific type.
+     */
+    @Query("SELECT * FROM tasks WHERE taskType = :taskType ORDER BY createdAt DESC")
+    fun getTasksByType(taskType: TaskType): Flow<List<TaskEntity>>
+    
+    /**
+     * Get DAILY tasks.
+     */
+    @Query("SELECT * FROM tasks WHERE taskType = 'DAILY' ORDER BY createdAt DESC")
+    fun getDailyTasks(): Flow<List<TaskEntity>>
+    
+    /**
+     * Get QUICK tasks.
+     */
+    @Query("SELECT * FROM tasks WHERE taskType = 'QUICK' ORDER BY createdAt DESC")
+    fun getQuickTasks(): Flow<List<TaskEntity>>
+    
+    /**
+     * Get GOAL tasks for a specific goal.
+     */
+    @Query("SELECT * FROM tasks WHERE taskType = 'GOAL' AND goalId = :goalId ORDER BY createdAt DESC")
+    fun getTasksByGoalId(goalId: Long): Flow<List<TaskEntity>>
+    
+    // ===== Count Queries =====
+    
+    /**
+     * Get count of completed tasks by type.
+     */
+    @Query("SELECT COUNT(*) FROM tasks WHERE taskType = :taskType AND isCompleted = 1")
+    fun getCompletedCountByType(taskType: TaskType): Flow<Int>
+    
+    /**
+     * Get total count of tasks by type.
+     */
+    @Query("SELECT COUNT(*) FROM tasks WHERE taskType = :taskType")
+    fun getTotalCountByType(taskType: TaskType): Flow<Int>
+    
+    /**
+     * Get count of completed tasks for a goal.
+     */
+    @Query("SELECT COUNT(*) FROM tasks WHERE goalId = :goalId AND isCompleted = 1")
+    fun getCompletedCountByGoal(goalId: Long): Flow<Int>
+    
+    /**
+     * Get total count of tasks for a goal.
+     */
+    @Query("SELECT COUNT(*) FROM tasks WHERE goalId = :goalId")
+    fun getTotalCountByGoal(goalId: Long): Flow<Int>
+    
+    // ===== CRUD Operations =====
+    
+    /**
+     * Insert a new task.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTask(task: TaskEntity): Long

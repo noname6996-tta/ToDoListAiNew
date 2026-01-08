@@ -1,6 +1,7 @@
 package com.tta.todolistainew.feature.task.data.repository
 
 import com.tta.todolistainew.feature.task.data.local.TaskDao
+import com.tta.todolistainew.feature.task.data.local.TaskType
 import com.tta.todolistainew.feature.task.data.mapper.toDomain
 import com.tta.todolistainew.feature.task.data.mapper.toDomainList
 import com.tta.todolistainew.feature.task.data.mapper.toEntity
@@ -20,6 +21,18 @@ class TaskRepositoryImpl(
     
     override fun getTasks(): Flow<List<Task>> {
         return taskDao.getAllTasks().map { entities ->
+            entities.toDomainList()
+        }
+    }
+    
+    override fun getTasksByType(taskType: TaskType): Flow<List<Task>> {
+        return taskDao.getTasksByType(taskType).map { entities ->
+            entities.toDomainList()
+        }
+    }
+    
+    override fun getTasksByGoalId(goalId: Long): Flow<List<Task>> {
+        return taskDao.getTasksByGoalId(goalId).map { entities ->
             entities.toDomainList()
         }
     }
@@ -68,5 +81,21 @@ class TaskRepositoryImpl(
     
     override suspend fun deleteCompletedTasks() {
         taskDao.deleteCompletedTasks()
+    }
+    
+    override fun getCompletedCountByType(taskType: TaskType): Flow<Int> {
+        return taskDao.getCompletedCountByType(taskType)
+    }
+    
+    override fun getTotalCountByType(taskType: TaskType): Flow<Int> {
+        return taskDao.getTotalCountByType(taskType)
+    }
+    
+    override fun getCompletedCountByGoal(goalId: Long): Flow<Int> {
+        return taskDao.getCompletedCountByGoal(goalId)
+    }
+    
+    override fun getTotalCountByGoal(goalId: Long): Flow<Int> {
+        return taskDao.getTotalCountByGoal(goalId)
     }
 }

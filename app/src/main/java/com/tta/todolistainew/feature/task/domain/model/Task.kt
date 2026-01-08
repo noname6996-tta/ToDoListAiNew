@@ -1,5 +1,7 @@
 package com.tta.todolistainew.feature.task.domain.model
 
+import com.tta.todolistainew.feature.task.data.local.TaskType
+
 /**
  * Domain model representing a Task.
  * This is a clean model used in the domain and UI layers,
@@ -11,7 +13,9 @@ data class Task(
     val description: String,
     val isCompleted: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
-    val dueDate: Long? = null
+    val dueDate: Long? = null,
+    val taskType: TaskType = TaskType.QUICK,
+    val goalId: Long? = null
 ) {
     /**
      * Returns true if the task has a due date set.

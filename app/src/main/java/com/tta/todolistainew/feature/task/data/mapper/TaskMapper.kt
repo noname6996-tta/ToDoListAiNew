@@ -18,7 +18,9 @@ fun TaskEntity.toDomain(): Task {
         description = description,
         isCompleted = isCompleted,
         createdAt = createdAt,
-        dueDate = dueDate
+        dueDate = dueDate,
+        taskType = taskType,
+        goalId = goalId
     )
 }
 
@@ -32,7 +34,9 @@ fun Task.toEntity(): TaskEntity {
         description = description,
         isCompleted = isCompleted,
         createdAt = createdAt,
-        dueDate = dueDate
+        dueDate = dueDate,
+        taskType = taskType,
+        goalId = goalId
     )
 }
 
