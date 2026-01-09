@@ -106,8 +106,17 @@ fun AppNavGraph(
             PlaceholderScreen("Privacy Policy", { navController.popBackStack() })
         }
         
-        // ... (Other routes remain same for brevity, will regenerate full file if needed but just updated HomeVM factory)
-        
+        composable<Route.Calendar> {
+            val viewModel: com.tta.todolistainew.feature.calendar.ui.CalendarViewModel = viewModel(
+                factory = com.tta.todolistainew.feature.calendar.ui.CalendarViewModel.Factory(appContainer.taskRepository)
+            )
+            com.tta.todolistainew.feature.calendar.ui.CalendarScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onTaskClick = { navController.navigate(Route.TaskDetail(it)) }
+            )
+        }
+
         composable<Route.TaskList> {
             val viewModel: TaskListViewModel = viewModel(
                 factory = TaskListViewModel.Factory(

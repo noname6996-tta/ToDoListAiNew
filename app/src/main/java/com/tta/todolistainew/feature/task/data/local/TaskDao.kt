@@ -65,6 +65,12 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE taskType = 'GOAL' AND goalId = :goalId ORDER BY createdAt DESC")
     fun getTasksByGoalId(goalId: Long): Flow<List<TaskEntity>>
     
+    /**
+     * Get tasks with due date in range.
+     */
+    @Query("SELECT * FROM tasks WHERE dueDate BETWEEN :start AND :end ORDER BY createdAt DESC")
+    fun getTasksByDateRange(start: Long, end: Long): Flow<List<TaskEntity>>
+    
     // ===== Count Queries =====
     
     /**

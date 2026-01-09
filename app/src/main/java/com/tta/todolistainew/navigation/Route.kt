@@ -51,4 +51,7 @@ sealed class Route {
 
     @Serializable
     data object PrivacyPolicy : Route()
+    
+    @Serializable
+    data object Calendar : Route()
 }

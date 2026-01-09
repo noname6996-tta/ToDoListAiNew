@@ -42,6 +42,16 @@ class TaskRepositoryImpl(
             entity?.toDomain()
         }
     }
+
+    override fun getTasksForDate(date: java.time.LocalDate): Flow<List<Task>> {
+        val zoneId = java.time.ZoneId.systemDefault()
+        val startOfDay = date.atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val endOfDay = date.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
+        
+        return taskDao.getTasksByDateRange(startOfDay, endOfDay).map { entities ->
+            entities.toDomainList()
+        }
+    }
     
     override fun getCompletedTasks(): Flow<List<Task>> {
         return taskDao.getCompletedTasks().map { entities ->

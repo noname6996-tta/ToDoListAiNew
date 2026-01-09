@@ -31,6 +31,8 @@ interface TaskRepository {
      */
     fun getTaskById(taskId: Long): Flow<Task?>
     
+    fun getTasksForDate(date: java.time.LocalDate): Flow<List<Task>>
+    
     /**
      * Get all completed tasks.
      */
