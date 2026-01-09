@@ -58,4 +58,9 @@ class AppContainer(context: Context) {
     val getGoalsUseCase: GetGoalsUseCase by lazy {
         GetGoalsUseCase(goalRepository)
     }
+    
+    // Settings
+    val settingsRepository: com.tta.todolistainew.feature.settings.data.SettingsRepository by lazy {
+        com.tta.todolistainew.feature.settings.data.SettingsRepository(context)
+    }
 }

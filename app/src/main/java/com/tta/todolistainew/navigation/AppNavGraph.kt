@@ -72,12 +72,38 @@ fun AppNavGraph(
                 )
             )
             
+            val settingsViewModel: com.tta.todolistainew.feature.settings.ui.SettingsViewModel = viewModel(
+                factory = com.tta.todolistainew.feature.settings.ui.SettingsViewModel.Factory(appContainer.settingsRepository)
+            )
+
             HomeScreen(
                 viewModel = viewModel,
-                onNavigateToGoalDetail = { goalId ->
-                    navController.navigate(Route.GoalDetail(goalId))
+                settingsViewModel = settingsViewModel,
+                onNavigateTo = { route ->
+                    navController.navigate(route)
+                },
+                onLogout = {
+                    navController.navigate(Route.Login) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
+        }
+
+        composable<Route.UserInfo> {
+            PlaceholderScreen("User Profile Info", { navController.popBackStack() })
+        }
+
+        composable<Route.Settings> {
+            PlaceholderScreen("Settings", { navController.popBackStack() })
+        }
+
+        composable<Route.AboutUs> {
+            PlaceholderScreen("About Us", { navController.popBackStack() })
+        }
+
+        composable<Route.PrivacyPolicy> {
+            PlaceholderScreen("Privacy Policy", { navController.popBackStack() })
         }
         
         // ... (Other routes remain same for brevity, will regenerate full file if needed but just updated HomeVM factory)

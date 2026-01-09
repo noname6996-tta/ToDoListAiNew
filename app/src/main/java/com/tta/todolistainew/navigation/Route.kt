@@ -39,4 +39,16 @@ sealed class Route {
      */
     @Serializable
     data class GoalDetail(val goalId: Long) : Route()
+
+    @Serializable
+    data object UserInfo : Route()
+
+    @Serializable
+    data object Settings : Route()
+
+    @Serializable
+    data object AboutUs : Route()
+
+    @Serializable
+    data object PrivacyPolicy : Route()
 }

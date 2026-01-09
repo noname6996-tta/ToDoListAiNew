@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ToDoListAI New</string>
+    <string name="hello_user">Chào bạn,</string>
+    <string name="your_goals">Mục tiêu của bạn đang chờ</string>
+    <!-- Add other strings as needed, this is just for resource folder creation -->
+</resources>

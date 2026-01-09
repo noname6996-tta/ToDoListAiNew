@@ -23,7 +23,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -57,6 +59,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.IconButton
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tta.todolistainew.core.common.UiEvent
 import com.tta.todolistainew.feature.task.data.local.TaskType
@@ -71,7 +77,9 @@ import java.time.LocalDate
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onNavigateToGoalDetail: (Long) -> Unit,
+    settingsViewModel: com.tta.todolistainew.feature.settings.ui.SettingsViewModel,
+    onNavigateTo: (Route) -> Unit,
+    onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -80,14 +88,19 @@ fun HomeScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showBottomSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    // Drawer State
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val context = LocalContext.current
     
     // Handle UI events
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
                 is UiEvent.Navigate -> {
-                    if (event.route is Route.GoalDetail) {
-                        onNavigateToGoalDetail(event.route.goalId)
+                    // Forward all navigation events to the main callback
+                    if (event.route is Route) {
+                        onNavigateTo(event.route)
                     }
                 }
                 else -> {}
@@ -95,146 +108,167 @@ fun HomeScreen(
         }
     }
     
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Column {
-                        Text(
-                            text = "Hello, User!", 
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "Your goals are waiting", 
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            AppDrawer(
+                settingsViewModel = settingsViewModel,
+                onNavigateTo = onNavigateTo,
+                onNavigateToExternal = { url ->
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                    context.startActivity(intent)
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                onLogout = onLogout,
+                closeDrawer = { scope.launch { drawerState.close() } }
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showBottomSheet = true }, // Show bottom sheet
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
-            }
-        }
-    ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
-            ) {
-                item { Spacer(modifier = Modifier.height(8.dp)) }
-                
-                // Tasks Overview Section
-                item {
-                    Text(
-                        text = "Tasks Overview",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Daily Tasks Card
-                        TaskSummaryCard(
-                            title = "Daily Tasks",
-                            completed = uiState.dailyTasksCompleted,
-                            total = uiState.dailyTasksTotal,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            onClick = { viewModel.onDailyTasksClick() },
-                            modifier = Modifier.weight(1f)
-                        )
-                        
-                        // Quick Tasks Card
-                        TaskSummaryCard(
-                            title = "Quick Tasks",
-                            completed = uiState.quickTasksCompleted,
-                            total = uiState.quickTasksTotal,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            onClick = { viewModel.onQuickTasksClick() },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-                
-                // Goals Section
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "My Goals",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                
-                if (uiState.goals.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
+        modifier = modifier
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { 
+                        Column {
                             Text(
-                                text = "No goals yet. Create one!",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = "Hello, User!", 
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = "Your goals are waiting", 
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    }
-                } else {
-                    items(uiState.goals) { goalWithProgress ->
-                        GoalCard(
-                            goalWithProgress = goalWithProgress,
-                            onClick = { viewModel.onGoalClick(goalWithProgress.goal.id) }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { showBottomSheet = true }, // Show bottom sheet
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add")
+                }
+            }
+        ) { paddingValues ->
+            if (uiState.isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
+                    item { Spacer(modifier = Modifier.height(8.dp)) }
+                    
+                    // Tasks Overview Section
+                    item {
+                        Text(
+                            text = "Tasks Overview",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
                         )
+                    }
+                    
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Daily Tasks Card
+                            TaskSummaryCard(
+                                title = "Daily Tasks",
+                                completed = uiState.dailyTasksCompleted,
+                                total = uiState.dailyTasksTotal,
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                onClick = { viewModel.onDailyTasksClick() },
+                                modifier = Modifier.weight(1f)
+                            )
+                            
+                            // Quick Tasks Card
+                            TaskSummaryCard(
+                                title = "Quick Tasks",
+                                completed = uiState.quickTasksCompleted,
+                                total = uiState.quickTasksTotal,
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                onClick = { viewModel.onQuickTasksClick() },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                    
+                    // Goals Section
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "My Goals",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    if (uiState.goals.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No goals yet. Create one!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    } else {
+                        items(uiState.goals) { goalWithProgress ->
+                            GoalCard(
+                                goalWithProgress = goalWithProgress,
+                                onClick = { viewModel.onGoalClick(goalWithProgress.goal.id) }
+                            )
+                        }
                     }
                 }
             }
-        }
-        
-        // Add Task/Goal Bottom Sheet
-        if (showBottomSheet) {
-            AddTaskBottomSheet(
-                sheetState = sheetState,
-                onDismiss = {
-                    scope.launch { sheetState.hide() }.invokeOnCompletion {
-                        showBottomSheet = false
+            
+            // Add Task/Goal Bottom Sheet
+            if (showBottomSheet) {
+                AddTaskBottomSheet(
+                    sheetState = sheetState,
+                    onDismiss = {
+                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                            showBottomSheet = false
+                        }
+                    },
+                    onAddTask = { title, description, type, dueDate ->
+                        viewModel.addTask(title, description, type, dueDate)
+                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                            showBottomSheet = false
+                        }
+                    },
+                    onAddGoal = { title, description, targetDate ->
+                        viewModel.addGoal(title, description, targetDate)
+                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                            showBottomSheet = false
+                        }
                     }
-                },
-                onAddTask = { title, description, type, dueDate ->
-                    viewModel.addTask(title, description, type, dueDate)
-                    scope.launch { sheetState.hide() }.invokeOnCompletion {
-                        showBottomSheet = false
-                    }
-                },
-                onAddGoal = { title, description, targetDate ->
-                    viewModel.addGoal(title, description, targetDate)
-                    scope.launch { sheetState.hide() }.invokeOnCompletion {
-                        showBottomSheet = false
-                    }
-                }
-            )
+                )
+            }
         }
     }
 }
