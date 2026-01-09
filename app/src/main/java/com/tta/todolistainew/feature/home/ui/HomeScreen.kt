@@ -23,8 +23,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Card
@@ -34,6 +36,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -261,8 +264,8 @@ fun HomeScreen(
                             showBottomSheet = false
                         }
                     },
-                    onAddTask = { title, description, type, dueDate ->
-                        viewModel.addTask(title, description, type, dueDate)
+                    onAddTask = { title, description, type, dueDate, hasNotif, notifTime ->
+                        viewModel.addTask(title, description, type, dueDate, hasNotif, notifTime)
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
                             showBottomSheet = false
                         }
@@ -284,17 +287,70 @@ fun HomeScreen(
 private fun AddTaskBottomSheet(
     sheetState: SheetState,
     onDismiss: () -> Unit,
-    onAddTask: (title: String, description: String, type: TaskType, dueDate: LocalDate?) -> Unit,
+    onAddTask: (title: String, description: String, type: TaskType, dueDate: LocalDate?, hasNotification: Boolean, notificationTime: Long?) -> Unit,
     onAddGoal: (title: String, description: String, targetDate: LocalDate?) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf(TaskType.QUICK) }
+    
+    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    
+    var hasNotification by remember { mutableStateOf(false) }
+    var notificationTime by remember { mutableStateOf<java.time.LocalTime?>(null) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
     val focusRequester = remember { FocusRequester() }
     
     // Auto-focus logic
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+    }
+    
+    if (showDatePicker) {
+        val datePickerState = androidx.compose.material3.rememberDatePickerState()
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            selectedDate = java.time.Instant.ofEpochMilli(millis)
+                                .atZone(java.time.ZoneId.systemDefault())
+                                .toLocalDate()
+                        }
+                        showDatePicker = false
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            androidx.compose.material3.DatePicker(state = datePickerState)
+        }
+    }
+    
+    if (showTimePicker) {
+        val timePickerState = androidx.compose.material3.rememberTimePickerState()
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        notificationTime = java.time.LocalTime.of(timePickerState.hour, timePickerState.minute)
+                        showTimePicker = false
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+            },
+            text = {
+                androidx.compose.material3.TimePicker(state = timePickerState)
+            }
+        )
     }
     
     ModalBottomSheet(
@@ -353,7 +409,7 @@ private fun AddTaskBottomSheet(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Description (Simplified)
+            // Description
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
@@ -362,7 +418,74 @@ private fun AddTaskBottomSheet(
                 maxLines = 3
             )
             
-            // TODO: Add Date Selection if needed
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Date Selection
+            Text("Due Date", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(bottom = 4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                InputChip(
+                    selected = selectedDate != null,
+                    onClick = { showDatePicker = true },
+                    label = { 
+                        Text(selectedDate?.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy")) ?: "Set Due Date") 
+                    },
+                    leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) },
+                    trailingIcon = if (selectedDate != null) {
+                        { 
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Clear",
+                                modifier = Modifier.size(16.dp).clickable { selectedDate = null }
+                            ) 
+                        }
+                    } else null
+                )
+            }
+            
+            if (selectedType != TaskType.GOAL) {
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Notification Toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(androidx.compose.material.icons.Icons.Default.Notifications, contentDescription = "Notification")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Remind me", style = MaterialTheme.typography.bodyLarge)
+                    }
+                    androidx.compose.material3.Switch(
+                        checked = hasNotification,
+                        onCheckedChange = { hasNotification = it }
+                    )
+                }
+                
+                if (hasNotification) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Time", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(bottom = 4.dp))
+                    InputChip(
+                        selected = notificationTime != null,
+                        onClick = { showTimePicker = true },
+                        label = {
+                             Text(
+                                text = notificationTime?.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")) 
+                                    ?: "5 minutes before (Default)"
+                            )
+                        },
+                         trailingIcon = if (notificationTime != null) {
+                            { 
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Clear",
+                                    modifier = Modifier.size(16.dp).clickable { notificationTime = null }
+                                ) 
+                            }
+                        } else null
+                    )
+                }
+            }
             
             Spacer(modifier = Modifier.height(24.dp))
             
@@ -371,9 +494,25 @@ private fun AddTaskBottomSheet(
                 onClick = {
                     if (title.isNotBlank()) {
                         if (selectedType == TaskType.GOAL) {
-                            onAddGoal(title, description, null) // Date picker TODO
+                             // Assuming goal doesn't support notifications yet or uses targetDate
+                            onAddGoal(title, description, selectedDate)
                         } else {
-                            onAddTask(title, description, selectedType, null) // Date picker TODO
+                            var notifTimeMillis: Long? = null
+                            if (hasNotification && selectedDate != null) {
+                                if (notificationTime != null) {
+                                    notifTimeMillis = java.time.LocalDateTime.of(selectedDate, notificationTime)
+                                        .atZone(java.time.ZoneId.systemDefault())
+                                        .toInstant()
+                                        .toEpochMilli()
+                                }
+                                // If notificationTime is null, repository/scheduler logic handles "5 mins before" 
+                                // based strictly on dueDate. But scheduler needs millis.
+                                // My scheduler check looks at task.timeNotification.
+                                // If task.timeNotification is NULL, it falls back to dueDate - 5min.
+                                // So passing null here is correct for "Default".
+                            }
+                            
+                            onAddTask(title, description, selectedType, selectedDate, hasNotification, notifTimeMillis)
                         }
                     }
                 },

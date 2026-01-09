@@ -35,5 +35,14 @@ data class TaskEntity(
     val taskType: TaskType = TaskType.QUICK,
     
     // FK -> GoalEntity.id (null if not a GOAL type task)
-    val goalId: Long? = null
+    val goalId: Long? = null,
+    
+    // ===== Notification =====
+    val hasNotification: Boolean = false,
+    val timeNotification: Long? = null,
+    val repeatNotification: Int? = null,
+    
+    // ===== Status =====
+    val isDeleted: Boolean = false,
+    val deletedAt: Long? = null // Storing as timestamp for simplicity in Entity
 )

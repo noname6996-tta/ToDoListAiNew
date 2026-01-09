@@ -117,13 +117,25 @@ class HomeViewModel(
     /**
      * Adds a new task of a specific type.
      */
-    fun addTask(title: String, description: String, type: TaskType, dueDate: LocalDate? = null) {
+    fun addTask(
+        title: String, 
+        description: String, 
+        type: TaskType, 
+        dueDate: LocalDate? = null,
+        hasNotification: Boolean = false,
+        notificationTime: Long? = null
+    ) {
         viewModelScope.launch {
+            val dueDateMillis = dueDate?.atStartOfDay(java.time.ZoneId.systemDefault())
+                ?.toInstant()?.toEpochMilli()
+
             val task = Task(
                 title = title,
                 description = description,
                 taskType = type,
-                dueDate = dueDate?.toEpochDay()?.times(86400000) // Convert to millis appx
+                dueDate = dueDateMillis,
+                hasNotification = hasNotification,
+                timeNotification = notificationTime
             )
             taskRepository.addTask(task)
             _uiEvent.send(UiEvent.ShowToast("Task added"))

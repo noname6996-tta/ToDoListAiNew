@@ -20,7 +20,12 @@ fun TaskEntity.toDomain(): Task {
         createdAt = createdAt,
         dueDate = dueDate,
         taskType = taskType,
-        goalId = goalId
+        goalId = goalId,
+        hasNotification = hasNotification,
+        timeNotification = timeNotification,
+        repeatNotification = repeatNotification,
+        isDeleted = isDeleted,
+        deletedAt = deletedAt?.let { java.time.LocalDate.ofEpochDay(it) }
     )
 }
 
@@ -36,7 +41,12 @@ fun Task.toEntity(): TaskEntity {
         createdAt = createdAt,
         dueDate = dueDate,
         taskType = taskType,
-        goalId = goalId
+        goalId = goalId,
+        hasNotification = hasNotification,
+        timeNotification = timeNotification,
+        repeatNotification = repeatNotification,
+        isDeleted = isDeleted,
+        deletedAt = deletedAt?.toEpochDay()
     )
 }
 

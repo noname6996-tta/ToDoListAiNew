@@ -37,9 +37,13 @@ class AppContainer(context: Context) {
         database.subTaskDao()
     }
     
+    val notificationScheduler: com.tta.todolistainew.feature.task.domain.notification.NotificationScheduler by lazy {
+        com.tta.todolistainew.feature.task.domain.notification.NotificationScheduler(context)
+    }
+
     // Repositories
     val taskRepository: TaskRepository by lazy {
-        TaskRepositoryImpl(taskDao)
+        TaskRepositoryImpl(taskDao, notificationScheduler)
     }
     
     val goalRepository: GoalRepository by lazy {

@@ -129,7 +129,16 @@ fun AppNavGraph(
         
         composable<Route.TaskDetail> { backStackEntry ->
             val route: Route.TaskDetail = backStackEntry.toRoute()
-            TaskDetailPlaceholder(route.taskId, { navController.popBackStack() })
+            val viewModel: com.tta.todolistainew.feature.task.ui.TaskDetailViewModel = viewModel(
+                factory = com.tta.todolistainew.feature.task.ui.TaskDetailViewModel.Factory(
+                    taskId = route.taskId,
+                    taskRepository = appContainer.taskRepository
+                )
+            )
+            com.tta.todolistainew.feature.task.ui.TaskDetailScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         
         composable<Route.GoalDetail> { backStackEntry ->
@@ -146,10 +155,4 @@ fun AppNavGraph(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TaskDetailPlaceholder(taskId: Long, onNavigateBack: () -> Unit) {
-    Scaffold(topBar = { TopAppBar(title = { Text("Task Detail") }, navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }) }) { 
-        Box(Modifier.fillMaxSize().padding(it), contentAlignment = Alignment.Center) { Text("Task Detail for ID: $taskId") } 
-    }
-}
+
